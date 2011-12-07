@@ -1,8 +1,15 @@
-This is some code and a concept outlined to verify the randomness of 
+This is some code and a concept outline to verify the randomness of 
 SessionIDs in webapplications. Originally written for @stake in 2001, extended
 in 2005 by FtR of Phenoelit and van Hauser of THC.org.
 
+Fx of Phenoelit used it some years later in order to check the randomness of 
+TAN numbers sent by Citibank for online-banking.
+Read the artikel about it at: 
+http://blog.recurity-labs.com/archives/2006/10/24/random_vs__coincidence/index.html
+
 The documentation how to use the provided tools is at www/index.html.
 The tools are at scripts/.
+
+If you have any questions and/or feedback please contact: scusi at snurn dot de
 
 
