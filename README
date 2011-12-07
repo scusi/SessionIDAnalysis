@@ -1,0 +1,8 @@
+This is some code and a concept outlined to verify the randomness of 
+SessionIDs in webapplications. Originally written for @stake in 2001, extended
+in 2005 by FtR of Phenoelit and van Hauser of THC.org.
+
+The documentation how to use the provided tools is at www/index.html.
+The tools are at scripts/.
+
+
