@@ -1,93 +1,480 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
 <html>
 <head>
-  <meta charset='utf-8'>
-
-  <title>scusi/SessionIDAnalysis @ GitHub</title>
-
-  <style type="text/css">
-    body {
-      margin-top: 1.0em;
-      background-color: #e3ddab;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #000000;
-    }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-    h1 { font-size: 3.8em; color: #1c2254; margin-bottom: 3px; }
-    h1 .small { font-size: 0.4em; }
-    h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #1c2254; }
-    h3 { text-align: center; color: #1c2254; }
-    a { color: #1c2254; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-  </style>
+<title>Howto analyse a SessionID</title>
+<link href="session.css" rel="stylesheet" type="text/css">
 </head>
-
 <body>
-  <a href="https://github.com/scusi/SessionIDAnalysis"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+<a name="top"></a>
+<h1>Howto Analyse a session ID</h1>
+<hr align="center" size="1" width="100%">
 
-  <div id="container">
+written by: 	<a href="mailto:flow@atstake.com">flow@atstake.com</a><br>
+Date:		19.09.2002<br>
+Last Update:	20.09.2002<br>
+Version:	0.0.1 (DRAFT)<br>
+<hr align="center" size="1" width="100%">
 
-    <div class="download">
-      <a href="https://github.com/scusi/SessionIDAnalysis/zipball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/zip.png"></a>
-      <a href="https://github.com/scusi/SessionIDAnalysis/tarball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/tar.png"></a>
-    </div>
+<h2>Index:</h2>
+<ol>
+	<li><a href="#about">About this document</a></li>
+	<li><a href="#why">Requirements for session IDs and why</a></li>
+	<li><a href="#what">What is a Differential Analysis (Phase Space Analysis)?</a></li>
+	<li><a href="#use">Using Differential Analysis in attacking cryptographic ciphers</a></li>
+	<li><a href="#steps">Steps to perform</a></li>
+	<ol>
+	  <li><a href="#step1">- Data Collection</a></li>
+	  <li><a href="#step2">- Data Reduction</a></li>
+	  <li><a href="#step3">- Calculation</a></li>
+	  <li><a href="#step4">- Visualization ans analysis</a></li>
+	</ol>
+	<li><a href="#results">Interpreting results</a></li>
+	<li><a href="#tools">Tools to use</a></li>
+        <ol>
+          <li><a href="#gather_cookies.sh">gather_cookies.sh</a></li>
+          <li><a href="#gather_cookies-ssl.sh">gather_cookies-ssl.sh</a></li>
+          <li><a href="#poststuff.txt">poststuff.txt</a></li>
+          <li><a href="#seq.pl">seq.pl</a></li>
+        </ol>
+	<li><a href="#credits">Credits</a></li>
+	<li><a href="#comments">Comments</a></li>
+</ol>
+<hr align="center" size="1" width="100%">
 
-    <h1><a href="https://github.com/scusi/SessionIDAnalysis">SessionIDAnalysis</a>
-      <span class="small">by <a href="https://github.com/scusi">scusi</a></span></h1>
+<h2><a name="about">About this Document:</a></h2>
+       <p>This document should give a straight forward guidline in
+            "how to analyse session-IDs" you find in Webaplications.
+             This document was written by Florian Walther <flow@atstake.com> on the 19th of
+             September 2002 and inspired by Michal Zalewski work on IP Sequenznumbers, that
+             is availible at:
+             <http://razor.bindview.com/publish/papers/tcpseq.html>
+             There are also several code snipplets shameless stolen from "Hacking Exposed 
+             Webapplications".
+       </p>
+<hr align="center" size="1" width="100%">
 
-    <div class="description">
-      My SessionID Analysis Tools
-    </div>
 
-    
-      <p>Some small tools to check for randomness of values. Can be used with all sorts of things, TANs, SessionIDs,...</p>
-    
+<h2><a name="why">Requirements for session IDs and why</a></h2>
+       <p>Web applications use session management to maintain context during client
+             interaction. Once a user logs in, that user is associated with a particular
+             session and the client is marked as authenticated. To prevent having to send
+             authentication credentials with each request from the client, most session
+             management systems use a session identifier. The session identifier is
+             basically a token that associates incoming requests with the server's stored
+             session. The goal of an attacker is to steal or guess a valid session ID for
+             a user. Therefore a session ID must be secured during transmission, should be
+             not predictable and it should be long enough to withstand brute force attacks.
+      </p>
+<hr align="center" size="1" width="100%">
 
-    
-      <h2>Dependencies</h2>
-      <p>perl, shell, splot, Math::Bigint</p>
-    
+<h2><a name="what">What is a Differential Analysis (Phase Space Analysis)?</a></h2>
+       <p>A differential analysis is a form of an attack in which the differences between
+            values is used to gain additional knowledge about the system and maybe also
+            about its implementation.
+       </p>
+<hr align="center" size="1" width="100%">
 
-    
+<h2><a name="use">Using Differential Analysis in attacking cryptographic ciphers.</a></h2>
+       <p>Phase Space is an n-dimensional space that fully describes the space of an
+            n-variable system. An attractor is a shape that is specific to the given
+            Pseudo-Random Number Generator (PRNG) function, and reveals the complex nature
+            of dependencies between subsequent results generated by the implementation. We
+            wanted to generate a clean, three-dimensional representation of the
+            one-dimensional input data. The method used is known as "delayed coordinates",
+            and is well known and widely used in the analysis of dynamic systems,
+            especially nonlinear systems and deterministic chaos.
+            This method assumes that we can reconstruct missing dimensions using previous,
+            delayed function values as additional coordinates. Instead of using function
+            values, we will calculate the first-order difference for the input
+            data to generate more suggestive and useful results to show the function
+            dynamics.So if "s" stands for the input set, and "x", "y" and "z" are the point
+            coordinates we are looking for, the equations are:
+      </p>
+      <var>
+              x[n] = s[n-2] - s[n-3] <br>
+              y[n] = s[n-1] - s[n-2] <br>
+              z[n] = s[n]    - s[n-1]  <br>
+      </var>
+       &nbsp;<br>
+     <font color="#FF0600">
+             <p>NOTE: This function does not predict values, it only hints at how difficult it would be to predict a value.</p>
+     </font>
+<hr align="center" size="1" width="100%">
 
-    
+<h2><a name="steps">Steps to perform</a></h2>
+<p>The analysis can be described in four Steps:</p>
+	<ol>
+	  <li><a href="#step1">- Data Collection</a></li>
+	  <li><a href="#step2">- Data Reduction</a></li>
+	  <li><a href="#step3">- Calculation</a></li>
+	  <li><a href="#step4">- Visualization ans analysis</a></li>
+	</ol>
 
-    
-      <h2>Authors</h2>
-      <p>Scusi (scusi@snurn.de)<br/>      </p>
-    
+<h2><a name="step1">Step 1	Data Collection:</a></h2><br>
+	<p>The first thing we have to do is to collect data on which to base the 
+	analysis. Normally SessionIDs will be set via cookies at the loginpage
+	to the webapplication uses that SessionID.
+	We assume that you have a valid login to the application in order to 
+	login and collect those cookies contain the SessionID.
+	To do this we can use the gather_cookie.sh Script is described in the
+	"<a href="#tools">Tools to use</a>" Section of this document.
+	gather_cookies.sh will repeatedly login into the application to gather
+	cookies that contain the SessionID.</p>
+&nbsp;<br>
+<h3>Step 1 in detail:</h3>
 
-    
-      <h2>Contact</h2>
-      <p> (scusi@snurn.de)<br/>      </p>
-    
+<p>We assume you have a valid login, let's say User="test" and 
+Password="testpasswd"
+Start @stake WebProxy, configure your browser to use webproxy and point your
+browser to the loginpage of the target webapplication.
+After login succesfully to the application go into the requestcache of webproxy
+and look for the last request you send to the Server before the Server sends
+back the cookie contains the sessionID.
+The Request could look like:</p>
+<pre>
+------------------------------
+01 POST /path-to/login HTTP/1.0						  
+02 User-Agent: Mozilla/4.75 [en] (X11; U; OpenBSD 3.1 i386; Nav) 
+03 Host: mytest.server.com:443 
+04 Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */* 
+05 Accept-Encoding: gzip 
+06 Accept-Language: de, en 
+07 Accept-Charset: iso-8859-1,*,utf-8 
+08 Cookie: test=1; host=; folders=; HostName=test-domain 
+09 Content-type: application/x-www-form-urlencoded 
+10 Connection: close 
+11 Content-length: 96 
+12 
+13 User=test&Password=testpasswd&RequestType=LoginRequest&Domain=test-domain 
+-------------------------------
+</pre>
 
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="https://github.com/scusi/SessionIDAnalysis/zipball/master">zip</a> or
-      <a href="https://github.com/scusi/SessionIDAnalysis/tarball/master">tar formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/scusi/SessionIDAnalysis</pre>
-    </p>
+<p>The Server Response (the Cookie) could look like:<br>
+</p>
+<pre>
+------------------------------- 
+01 HTTP/1.1 302 Found 
+02 Date: <date of the webserver> 
+03 Server: Apache/1.3.26 (Unix) mod_ssl/2.8.10 OpenSSL/0.96 
+04 Set-Cookie: SESSIONID=51917721 
+05 Location: /path-to/login 
+06 Connection: close 
+07 Content-type: text/html; charset=iso-8859-1 
+------------------------------- 
+</pre>
+<p>if you found both, take the browser-Request and put it in a text file (poststuff.txt).
+This text file we will use as input data for our cookie collecting script 
+(gather_cookies.sh) in order to login.
+Basically "gather_cooies.sh" just posts the input (our request is now in poststuff.txt)
+to the given webserver and logs the respons in another log file.
+In order to have enough data to base our analysis on, we should collect at least 10.000 Cookies.</p>
+<font color="#FF0600">
+<p>NOTE: repeatendly logins to a webserver can cause kind of a dinial of service condition if the webserver
+      is not performant enough to handle all the requests we generate in addition to the "normal" traffic.</p>
+</font>
 
-    <div class="footer">
-      get the source code on GitHub : <a href="https://github.com/scusi/SessionIDAnalysis">scusi/SessionIDAnalysis</a>
-    </div>
+<hr align="center" size="1" width="100%">
 
-  </div>
 
+<h2><a name="step2">Step 2 	Data Reduction:</a></h2>
+	<p>The data  we collected by the shell script in step 1 contains much more information
+	than needed for the specific analysis. We have to extract and condens the data down
+	to what is relevant for us.</p>
+
+<h3>Step 2 in detail:</h3>
+       <p>Step 1 produced a logfile with all the responses from the Webserver. The only thing we are
+            interested in is the value of the SESSIONID Cookie (which is 51917721 in the example above).
+            I leave it up to you how to cut away all the other data, i did it with the subtract command in vi,
+            but you can also do it in Perl or with sed and gawk or what ever you want to use.
+            (Just by Hand is a bit boring ;-)) After you cut out all the stuff we don't need you should have 
+            a file looks like:
+       </p>
+       <pre>
+               -------------------------------
+               51917721
+               52792087
+               53667222
+               00511487
+               01386398
+               02495651
+               03386901
+               04245317
+               05120733
+               05979877
+               06839779
+               07698167
+               -------------------------------
+       </pre>
+        <p>Save the values to a file. Now we are ready for step 3.</p>
+<hr align="center" size="1" width="100%">
+
+<h2><a name="step3">Step 3:	Calculation:</a></h2>
+	<p>In order to be able to do phase space analysis, the delayed coordinates
+	     are calculated with the existing cookie values. we will use a
+	     custom-developed Perl script (seq.pl) to accomplish this step.
+	</p>
+	 <h3>Step 3 in detail:</h3>
+	   <p>What we do now is we use seq.pl (which is in the Tools Section of this
+	        document) to calculate our delayed coordinates from the inputdata (the cookie
+	        values we extracted in Step 2). In order to do this we just have to run seq.pl
+	        with the input data as argument. 
+	        You have to call seq.pl with a comand line like this:
+	    </p>
+	    <pre>cat step2-output.txt | ./seq.pl > 3d.dat</pre>
+	    <p>The above command line will print the cookie values we extracted in step 2 and pipe
+	          them to seq.pl (which is doing the actual calculations). The output will be written
+	          to 3d.dat. The Script will produce a *.dat file (3d.dat) with the delayed coordinates. 
+	          The .dat file could look like:
+	     </p>
+	     <pre>
+	            -------------------------------
+	            891250 1109253 874911
+	            858416 891250 1109253
+	            875416 858416 891250
+	            859144 875416 858416
+	            859902 859144 875416
+	            858388 859902 859144
+	            860174 858388 859902
+	            858751 860174 858388
+	            859330 858751 860174
+	            874704 859330 858751
+	            875725 874704 859330
+	            859341 875725 874704
+	            859364 859341 875725
+	            -------------------------------
+	    </pre>
+	    <p>If you have the datfile you are ready for Step 4.<br></p>
+<hr align="center" size="1" width="100%">
+
+
+<h2><a name="step4">Step 4:	Visualization and Analysis:</a></h2>
+	<p>The data gathered in Step 3 was put into a mathematical plot program to
+	     generate the display graph (Fig.1). we will use 'GNUplot' to achieve this effort.
+	</p>
+	 <h3>Step 4 in detail:</h3>
+	   <p>What we do now is we feed the delayed coordinates into GNUplot to visualize the
+	        data, in order to be able to analise the results. We need to have GNUplot instaled 
+	        and running. GNUplot can be downloaded at:<br>
+	        <a href="http://www.gnuplot.info/">http://www.gnuplot.info/</a><br>
+	        An introduction to GNUplot you can find here:<br>
+	        <a href="http://www.cs.uni.edu/Help/gnuplot/">http://www.cs.uni.edu/Help/gnuplot/</a><br>
+	        &nbsp;<br>
+	        Start GNUplot with <code>gnuplot</code>. U will get a gnuplot command line looks like:
+	   </p>
+<pre>
+-------------------------------
+gnuplot>
+-------------------------------
+</pre>
+
+<p>In the following table you will find the commands you really need.</p>
+
+<table border="0" width="100%">
+  <tr>
+    <td><strong>GNUplot Command:</strong></td>
+    <td><strong>Description:</strong></td>
+  </tr>
+  <tr>
+     <td><code>gnuplot> splot "step3output.dat"</code></td>
+     <td>Will load and plot the data we got out of step 3.</td>
+  </tr>
+    <tr>
+     <td><code>gnuplot> set output "output.ps"</code></td>
+     <td>redirects the output to a file with the filename output.ps</td>
+  </tr>
+    <tr>
+     <td><code>gnuplot> set terminal postscript</code></td>
+     <td>Sets the terminal mode to postscript, will produce postscript output.</td>
+  </tr>
+    <tr>
+     <td><code>gnuplot> set terminal postscript color</code></td>
+     <td>produces also Postscript, but in color.</td>
+  </tr>
+  <tr>
+    <td><code>gnuplot> replot</code></td>
+    <td>replots the whole stuff. If you changed the terminal and output this will be used now.</td>
+  </tr>
+</table>
+
+<p>This Postscript file you can also convert into .jpg or a .gif picture,
+which you can put into your report.
+
+The result could look like the examples in <a href="#results">Interpreting results</a></p>
+<hr align="center" size="1" width="100%">
+<h2><a name="results">Interpreting results:</a></h2>
+
+<h3>good randomness</h3>
+       <p>A high degree of randomness in the session ID would generate a wide distribution cloud with evenly spread values and no patterns.
+            The following figure shows a good randomness. It was produced by <a href="../scripts/gen-random.pl">this script</a>.<br><em>Click on the image to Zoom in.</em><br>
+        </p>
+          <a href="img/Truly_Random_Values.gif">
+            <img src="img/Truly_Random_Values_thumbnail.jpg" width="250" height="175" border="0" alt="img/Truly_Random_Values.gif">
+          </a>
+        <br clear="all">
+            
+<h3>poor randomness</h3>
+       <p>A poor degree of randomness in the session ID would generate a clear concentration of values along the three vectors.
+            The folowing graph shows a poor randomness.<br><em>Click on the image to Zoom in.</em><br>
+       </p>
+        <a href="img/not-really-random.jpg">
+          <img src="img/not-really-random_thumbnail.jpg" width="250" height="175" border="0" alt="img/not-really-random.jpg">
+        </a>
+        &nbsp;<br>
+        
+<h3>time based "randomness"</h3>
+       <p>In the following figure you can see how a SessionID which is based on seconds and microseconds since the epoch is 
+            shown in a phase-space analysis. <br>
+            <em>Click on the image to Zoom in.</em>
+       </p>
+       <a href="img/non-random-0.0.3.jpg">
+         <img src="img/non-random-0.0.3_thumbnail.jpg" width="250" height="175" border="0" alt="img/non-random-0.0.3.jpg">
+       </a>
+       <p>The Script i wrote to generate these values is availible <a href="../scripts/gen-non-random.pl">here</a><br>
+            The relevant parts of the script looks like:
+       </p>
+       <pre>
+              #!/usr/bin/perl -w
+              # [...]
+              use Time::HiRes qw( usleep ualarm gettimeofday tv_interval );
+              use Math::Random;
+              
+              for ($i=0; $i<$count;$i++)
+              {
+                      $random = random_uniform();
+                      $randsub = substr($random, 2, 6);
+                      ($seconds, $microseconds) = gettimeofday;
+                      $s = substr($seconds, 8, 2);
+                      uslgather_cookies.sheep $randsub;
+                      $time = $s . $microseconds;
+                      print ("$time\n");
+              }
+              exit;
+       </pre>
+       &nbsp;<br>
+<hr align="center" size="1" width="100%">
+
+<h2><a name="tools">Tools to use:</a></h2>
+
+<p>In this Section you will learn about the Tools you need to do all this.<br></p>
+     <ul>
+       <li><a href="#gather_cookies.sh">gather_cookies.sh</a></li>
+       <li><a href="#gather_cookies-ssl.sh">gather_cookies-ssl.sh</a></li>
+       <li><a href="#poststuff.txt">poststuff.txt</a></li>
+       <li><a href="#seq.pl">seq.pl</a></li>
+     </ul>
+     <a name="gather_cookies.sh"><h3>gather_cookies.sh</h3></a>
+     <p>To collect the cookies we have gather_cookies.sh and gather_cookies-ssl.sh.<br>
+     gather_cookies.sh is a Sellscript for colecting cookies from normal webservers (http).<br>
+     gather_goocies-ssl.sh is a script to collect cookies from https Servers.<br>
+     The Syntax of the script is:<br>
+     <code>./gather_cookies.sh www.victim.com | tee cookies.txt</code><br>
+     The Code looks like:<br></p>
+     <pre>
+     #!/bin/sh
+     # gather.sh
+     while [ 1 ]
+     do 
+     echo -e "GET / HTTP/1.0\n\n" |  \
+     nc -vv $1 80 | \
+     grep ASPSESSIONID
+     done
+     </pre>
+     &nbsp;<br>
+     
+     <a name="gather_cookies-ssl.sh"><h3>gather_cookies-ssl.sh</h3></a>
+     <p>The Syntax for gather_cookies-ssl.sh is the same as for gather_cookies.sh.<br>
+     The Code for gather_cookies-ssl.sh looks like this:<br></p>
+     <pre>
+     gather_cookies.sh:
+     ==================
+     01	#!/bin/sh
+     02	#
+     03	# gather_cookies-ssl.sh
+     04	# written by &lt;flow@atstake.com&gt;
+     05	#
+     06	# Shell script to gather Cookies from a Server to analyze them.
+     07	#
+     08	##########################################################
+     09	while [ 1 ]
+     10	do
+     11	cat poststuff.txt|  \
+     12	openssl s_client -quiet -no_tls1 -connect $1:443 2>/dev/null | \
+     13	grep 1
+     14	done
+     </pre>
+     
+     <a name="poststuff.txt"><h3>poststuff.txt</h3></a>
+     <p>poststuff.txt is the request we post to the server in order to login and getting a cookie with the SessionID.</p>
+<pre>poststuff.txt
+==============
+POST /path-to/login HTTP/1.0
+User-Agent: Mozilla/4.75 [en] (X11; U; OpenBSD 3.1 i386; Nav)
+Host: mytest.server.com:443
+Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*
+Accept-Encoding: gzip
+Accept-Language: de, en
+Accept-Charset: iso-8859-1,*,utf-8
+Cookie: test=1; host=; folders=; HostName=test-domain
+Content-type: application/x-www-form-urlencoded
+Connection: close
+Content-length: 96
+
+User=test&Password=testpasswd&RequestType=LoginRequest&u=&STD=lm%3D1%26&Domain=test-domain</pre>
+
+<a name="seq.pl"><h3>seq.pl</h3></a>
+<p>seq.pl is the Perlscript which calculates the delayed coordinates for the Cookie Values you collected.</p>
+<pre>
+seq.pl:
+=======
+01	############################################
+02	#!/usr/bin/perl -w
+03	#
+04	# seq.pl
+05	# Script to calculate "delayed coordinates".
+06	############################################
+07
+08	@seq = ();
+09	@x = @y = @z = ();
+10	while(<>) {
+11	        chomp($val = $_);
+12	        push(@seq, $val);
+13
+14	}
+15	for ($i = 3; $i < $#seq; $i++) {
+16      	push(@x, $seq[$i]       - $seq[$i - 1]);
+17        	push(@y, $seq[$i - 1]   - $seq[$i - 2]);
+18	        push(@z, $seq[$i - 2]   - $seq[$i - 3]);
+19	}
+20	for ($i = 0; $i < $#seq; $i++) {
+21	        print $x[$i] . " " . $y[$i] . " " . $z[$i] . "\n";
+22	}
+23	############################################
+</pre>
+
+<hr align="center" size="1" width="100%">
+
+<h2><a name="credits">Credits:</a></h2>
+<p>Thanks to:<br></p>
+<ul>
+<li>Michal Zalewski for his great work on IP Sequencenumbers.</li>
+<li>Randal Acton for the "Requirements for session IDs and why" part of this document.</li>
+</ul>
+
+<hr align="center" size="1" width="100%">
+
+<h2><a name="comments">Comments:</a></h2>
+
+<p>If you have any constructive comment on the above please drop a mail to:
+<a href="mailto:flow@atstake.com">flow@atstake.com</a>.
+I will try to add your stuff to the current version of the document and/or
+correct the stuff you found that is not right or not clear.</p>
+<hr align="center" size="1" width="100%">
+<table cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
+  <tr>
+    <td width="33%">&copy; by <a href="mailto:flow@atstake.com">Florian Walther</a> September 2002</td>
+    <td width="33%"><div align="center">[ <a href="#top">back to top</a> ]</div></td>
+    <td width="33%"><div align="right"></div></td>
+  </tr>
+</table>
 </body>
 </html>
