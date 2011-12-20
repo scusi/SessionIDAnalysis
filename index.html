@@ -9,15 +9,16 @@
 <h1>Howto Analyse a session ID</h1>
 <hr align="center" size="1" width="100%">
 
-written by: 	<a href="mailto:flow@atstake.com">flow@atstake.com</a><br>
-Date:		19.09.2002<br>
-Last Update:	20.09.2002<br>
-Version:	0.0.1 (DRAFT)<br>
+written by: 	<strike><a href="mailto:flow@atstake.com">flow@atstake.com</a></strike> scusi at snurn dot de<br>
+Date:			19.09.2002<br>
+Last Update:	20.12.2011<br>
+Version:	0.3 <br>
 <hr align="center" size="1" width="100%">
 
 <h2>Index:</h2>
 <ol>
 	<li><a href="#about">About this document</a></li>
+	<li><a href="#donload">Download</a></li>
 	<li><a href="#why">Requirements for session IDs and why</a></li>
 	<li><a href="#what">What is a Differential Analysis (Phase Space Analysis)?</a></li>
 	<li><a href="#use">Using Differential Analysis in attacking cryptographic ciphers</a></li>
@@ -53,7 +54,22 @@ Version:	0.0.1 (DRAFT)<br>
        </p>
 <hr align="center" size="1" width="100%">
 
+<h2><a name="download">Download</h2>
+    <p>
+      You can download this project in either
+      <a href="https://github.com/scusi/SessionIDAnalysis/zipball/master">zip</a> or
+      <a href="https://github.com/scusi/SessionIDAnalysis/tarball/master">tar formats.
+    </p>
+    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
+      by running:
+      <pre>$ git clone git://github.com/scusi/SessionIDAnalysis</pre>
+    </p>
 
+    <div class="footer">
+      get the source code on GitHub : <a href="https://github.com/scusi/SessionIDAnalysis">scusi/SessionIDAnalysis</a>
+    </div>
+	</p>
+<hr align="center" size="1" width="100%">
 <h2><a name="why">Requirements for session IDs and why</a></h2>
        <p>Web applications use session management to maintain context during client
              interaction. Once a user logs in, that user is associated with a particular
@@ -458,6 +474,8 @@ seq.pl:
 <ul>
 <li>Michal Zalewski for his great work on IP Sequencenumbers.</li>
 <li>Randal Acton for the "Requirements for session IDs and why" part of this document.</li>
+<li>Fred the Rolf of Phenolit.org for enhancing this code.</li>
+<li>van Hauser of THC.org for spending hex2bigint.pl to this project.</li>
 </ul>
 
 <hr align="center" size="1" width="100%">
@@ -465,13 +483,13 @@ seq.pl:
 <h2><a name="comments">Comments:</a></h2>
 
 <p>If you have any constructive comment on the above please drop a mail to:
-<a href="mailto:flow@atstake.com">flow@atstake.com</a>.
+<a href="mailto:scusi@snurn.de">scusi@snurn.de</a>.
 I will try to add your stuff to the current version of the document and/or
 correct the stuff you found that is not right or not clear.</p>
 <hr align="center" size="1" width="100%">
 <table cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
   <tr>
-    <td width="33%">&copy; by <a href="mailto:flow@atstake.com">Florian Walther</a> September 2002</td>
+    <td width="33%">&copy; by <a href="mailto:scusi@snurn.de">Florian 'scusi' Walther</a> September 2002</td>
     <td width="33%"><div align="center">[ <a href="#top">back to top</a> ]</div></td>
     <td width="33%"><div align="right"></div></td>
   </tr>
